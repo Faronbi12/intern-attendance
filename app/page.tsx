@@ -157,9 +157,13 @@ export default function Home() {
             </div>
           )}
         </div>
-
         <div className="px-6 pb-8">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Recent history</p>
+          <div className="flex justify-between items-center mb-3">
+  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Recent history</p>
+  <button onClick={() => router.push("/history")} className="text-xs text-blue-400 hover:text-blue-600 transition">
+    View all →
+  </button>
+</div>
           {loading ? (
             <p className="text-sm text-gray-400 text-center py-4">Loading...</p>
           ) : records.length === 0 ? (
