@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
+import { useRouter } from "next/navigation";
 
 type Record = {
   id?: string;
@@ -12,6 +13,7 @@ type Record = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [records, setRecords] = useState<Record[]>([]);
   const [showAbsentForm, setShowAbsentForm] = useState(false);
   const [reason, setReason] = useState("");
@@ -25,13 +27,23 @@ export default function Home() {
   const todayRecord = records.find((r) => r.date === todayKey);
 
   useEffect(() => {
-    fetchRecords();
+    checkUser();
   }, []);
 
-  const fetchRecords = async () => {
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login");
+    } else {
+      fetchRecords(user.id);
+    }
+  };
+
+  const fetchRecords = async (userId: string) => {
     const { data, error } = await supabase
       .from("attendance")
       .select("*")
+      .eq("user_id", userId)
       .order("date", { ascending: false });
     if (!error && data) setRecords(data);
     setLoading(false);
@@ -42,9 +54,11 @@ export default function Home() {
 
   const handleCheckIn = async () => {
     if (todayRecord) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { data, error } = await supabase
       .from("attendance")
-      .insert([{ date: todayKey, check_in: getTime(), check_out: null, status: "present" }])
+      .insert([{ date: todayKey, check_in: getTime(), check_out: null, status: "present", user_id: user.id }])
       .select();
     if (!error && data) setRecords([...data, ...records]);
   };
@@ -55,31 +69,39 @@ export default function Home() {
       .from("attendance")
       .update({ check_out: getTime() })
       .eq("date", todayKey);
-    if (!error) fetchRecords();
+    if (!error) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) fetchRecords(user.id);
+    }
   };
 
   const handleAbsent = async () => {
     if (todayRecord) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { data, error } = await supabase
       .from("attendance")
-      .insert([{ date: todayKey, check_in: null, check_out: null, status: "absent", reason }])
+      .insert([{ date: todayKey, check_in: null, check_out: null, status: "absent", reason, user_id: user.id }])
       .select();
     if (!error && data) setRecords([...data, ...records]);
     setShowAbsentForm(false);
     setReason("");
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 overflow-hidden">
 
-        {/* Navbar */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
           <span className="font-medium text-gray-800">📋 Intern Attendance</span>
-          <span className="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full">Intern</span>
+          <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-600 transition">Log out</button>
         </div>
 
-        {/* Hero */}
         <div className="px-6 pt-8 pb-6">
           <p className="text-sm text-gray-400 mb-1">Good morning,</p>
           <h1 className="text-2xl font-semibold text-gray-900 mb-1">Welcome back 👋</h1>
@@ -89,7 +111,6 @@ export default function Home() {
             📅 {today}
           </div>
 
-          {/* Today's status */}
           {todayRecord && (
             <div className="mb-4 p-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600">
               {todayRecord.status === "present" ? (
@@ -102,7 +123,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <button onClick={handleCheckIn} disabled={!!todayRecord}
               className="flex flex-col gap-2 p-4 rounded-xl border border-green-200 bg-green-50 text-left hover:bg-green-100 transition disabled:opacity-40 disabled:cursor-not-allowed">
@@ -124,7 +144,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Absent form */}
           {showAbsentForm && (
             <div className="mt-4 p-4 rounded-xl border border-orange-200 bg-orange-50">
               <p className="text-sm font-medium text-orange-900 mb-2">Reason for absence</p>
@@ -139,7 +158,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* History */}
         <div className="px-6 pb-8">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Recent history</p>
           {loading ? (
