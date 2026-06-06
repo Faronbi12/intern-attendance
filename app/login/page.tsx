@@ -20,9 +20,21 @@ export default function LoginPage() {
       if (error) setError(error.message);
       else setError("Check your email to confirm your account!");
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-      else router.push("/");
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); setLoading(false); return; }
+      
+      // Check role and redirect accordingly
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      if (profile?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     }
     setLoading(false);
   };
