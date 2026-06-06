@@ -33,7 +33,7 @@ export default function Home() {
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
+    if (!user) { router.push("/landing"); return; }
     setUserEmail(user.email || "");
     fetchRecords(user.id);
   };
@@ -89,7 +89,7 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/landing");
   };
 
   return (
@@ -208,14 +208,6 @@ export default function Home() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Admin link */}
-        <div className="mt-4 text-center">
-          <button onClick={() => router.push("/admin")}
-            className="text-xs text-slate-600 hover:text-slate-400 transition">
-            Admin Dashboard
-          </button>
         </div>
 
       </div>

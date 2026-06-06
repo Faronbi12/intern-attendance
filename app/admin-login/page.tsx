@@ -1,0 +1,91 @@
+"use client";
+import { useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useRouter } from "next/navigation";
+
+export default function AdminLoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) setError(error.message);
+      else setError("Check your email to confirm. Ask your system admin to grant you admin access.");
+    } else {
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); setLoading(false); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      if (profile?.role === "admin") {
+        router.push("/admin");
+      } else {
+        setError("You do not have admin access.");
+      }
+    }
+    setLoading(false);
+  };
+
+  return (
+    <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-md">
+
+        <button onClick={() => router.push("/landing")}
+          className="text-slate-400 text-sm mb-6 hover:text-white transition">
+          ← Back
+        </button>
+
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl px-6 py-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-xl">🛡️</div>
+            <div>
+              <h1 className="text-white font-bold text-lg">{isSignUp ? "Create Admin Account" : "Admin Login"}</h1>
+              <p className="text-slate-400 text-xs">Restricted — Authorized Personnel Only</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <input type="email" placeholder="Admin email" value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full text-sm bg-slate-900 border border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 placeholder-slate-500" />
+            <input type="password" placeholder="Password" value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full text-sm bg-slate-900 border border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-green-500 placeholder-slate-500" />
+
+            {error && (
+              <p className={`text-sm ${error.includes("Check your email") ? "text-green-400" : "text-red-400"}`}>
+                {error}
+              </p>
+            )}
+
+            <button onClick={handleSubmit} disabled={loading}
+              className="w-full bg-green-600 text-white text-sm py-3 rounded-xl hover:bg-green-700 transition disabled:opacity-50 font-medium">
+              {loading ? "Please wait..." : isSignUp ? "Create Admin Account" : "Log In as Admin"}
+            </button>
+
+            <button onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+              className="text-sm text-slate-400 hover:text-white transition text-center">
+              {isSignUp ? "Already have an account? Log in as Admin" : "Don't have an account? Create Account as Admin"}
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center text-slate-600 text-xs mt-6">
+          If you are an intern, use the Intern Portal instead.
+        </p>
+      </div>
+    </main>
+  );
+}
