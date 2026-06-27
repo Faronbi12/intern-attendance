@@ -27,7 +27,7 @@ export default function LandingPage() {
             </div>
             <div className="text-left">
               <p className="text-white font-semibold">Intern Portal</p>
-              <p className="text-slate-400 text-sm">Check in, check out and track your attendance</p>
+              <p className="text-slate-400 text-sm">Check in, check out, and view your attendance</p>
             </div>
             <span className="ml-auto text-slate-600 group-hover:text-blue-400 transition">→</span>
           </button>
@@ -40,8 +40,7 @@ export default function LandingPage() {
             </div>
             <div className="text-left">
               <p className="text-white font-semibold">Admin Portal</p>
-              <p className="text-slate-400 text-sm">Monitor and manage all intern attendance</p>
-            </div>
+          <p className="text-slate-400 text-sm">Monitor and manage Intern attendance</p>            </div>
             <span className="ml-auto text-slate-600 group-hover:text-blue-400 transition">→</span>
           </button>
         </div>
