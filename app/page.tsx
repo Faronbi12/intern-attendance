@@ -18,6 +18,7 @@ export default function Home() {
   const [showAbsentForm, setShowAbsentForm] = useState(false);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -35,6 +36,7 @@ export default function Home() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/landing"); return; }
     setUserEmail(user.email || "");
+    setAuthLoading(false);
     fetchRecords(user.id);
   };
 
@@ -91,6 +93,19 @@ export default function Home() {
     await supabase.auth.signOut();
     router.push("/landing");
   };
+
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">📋</span>
+          </div>
+          <p className="text-slate-400 text-sm">Loading...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-900 flex flex-col items-center py-10 px-4">
