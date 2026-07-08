@@ -17,12 +17,18 @@ export default function AdminLoginPage() {
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setError(error.message);
+      if (error) {
+        if (error.message.includes("Password")) {
+          setError("Password must be at least 12 characters long and contain uppercase and lowercase letters, a number, and a special character.");
+        } else {
+          setError(error.message);
+        }
+      }
       else setError("Check your email to confirm. Ask your system admin to grant you admin access.");
     } else {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message); setLoading(false); return; }
-
+      
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
