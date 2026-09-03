@@ -2,6 +2,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
 import { useRouter } from "next/navigation";
+import { Fraunces, IBM_Plex_Sans } from "next/font/google";
+
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
+const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500"] });
 
 type Record = {
   id?: string;
@@ -24,13 +28,10 @@ export default function Home() {
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
-
   const todayKey = new Date().toISOString().split("T")[0];
   const todayRecord = records.find((r) => r.date === todayKey);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  useEffect(() => { checkUser(); }, []);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -96,127 +97,159 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <main className="min-h-screen bg-[#F3ECDD] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">📋</span>
+          <div className="w-12 h-12 rounded-full bg-[#5B1A1E] flex items-center justify-center mx-auto mb-4">
+            <span className={`${fraunces.className} text-[#F3ECDD] text-base`}>IA</span>
           </div>
-          <p className="text-slate-400 text-sm">Loading...</p>
+          <p className={`${plex.className} text-[#8A7A63] text-sm`}>Loading your record...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 flex flex-col items-center py-10 px-4">
+    <main className="min-h-screen bg-[#F3ECDD] flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-md">
-
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-white font-bold text-xl tracking-tight">Intern Attendance</h1>
-            <p className="text-slate-400 text-xs mt-0.5">{userEmail}</p>
+            <h1 className={`${fraunces.className} text-[#2B211A] text-xl`}>Intern Attendance</h1>
+            <p className={`${plex.className} text-[#8A7A63] text-xs mt-0.5`}>{userEmail}</p>
           </div>
-          <button onClick={handleLogout}
-            className="text-xs bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-700 transition">
+          <button
+            onClick={handleLogout}
+            className={`${plex.className} text-xs border border-[#5B1A1E] text-[#5B1A1E] px-3 py-1.5 rounded-md hover:bg-[#5B1A1E] hover:text-[#F3ECDD] transition`}
+          >
             Log out
           </button>
         </div>
 
-        {/* Date card */}
-        <div className="bg-blue-600 rounded-2xl px-6 py-5 mb-4">
-          <p className="text-blue-200 text-xs font-medium uppercase tracking-widest mb-1">Today</p>
-          <p className="text-white font-semibold text-lg">{today}</p>
+        <div className="relative bg-[#EDE3CC] border border-[#D9CBA8] rounded-md px-6 py-5 mb-4 overflow-hidden">
+          <span className="absolute left-0 top-0 h-full w-1 bg-[#5B1A1E]" />
+          <p className={`${plex.className} text-[#8A7A63] text-xs mb-1`}>Today</p>
+          <p className={`${fraunces.className} text-[#2B211A] text-lg`}>{today}</p>
           {todayRecord ? (
-            <div className="mt-3 pt-3 border-t border-blue-500">
+            <div className="mt-3 pt-3 border-t border-[#D9CBA8]">
               {todayRecord.status === "present" ? (
-                <p className="text-blue-100 text-sm">
-                  ✅ Checked in at <strong>{todayRecord.check_in}</strong>
+                <p className={`${plex.className} text-sm text-[#3F6B4F]`}>
+                  Checked in at <strong>{todayRecord.check_in}</strong>
                   {todayRecord.check_out && <> · Checked out at <strong>{todayRecord.check_out}</strong></>}
                 </p>
               ) : (
-                <p className="text-blue-100 text-sm">❌ Absent {todayRecord.reason && <>— {todayRecord.reason}</>}</p>
+                <p className={`${plex.className} text-sm text-[#5B1A1E]`}>
+                  Absent{todayRecord.reason && <> — {todayRecord.reason}</>}
+                </p>
               )}
             </div>
           ) : (
-            <p className="text-blue-200 text-sm mt-2">No record yet for today.</p>
+            <p className={`${plex.className} text-[#8A7A63] text-sm mt-2`}>No record yet for today.</p>
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <button onClick={handleCheckIn} disabled={!!todayRecord}
-            className="flex flex-col gap-2 p-4 rounded-xl bg-slate-800 border border-slate-700 text-left hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
-            <span className="text-2xl">🟢</span>
-            <span className="font-semibold text-white text-sm">Check In</span>
-            <span className="text-xs text-slate-400">Mark your arrival</span>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <button
+            onClick={handleCheckIn}
+            disabled={!!todayRecord}
+            className="flex flex-col gap-2 p-4 rounded-md bg-[#EDE3CC] border border-[#D9CBA8] text-left hover:border-[#3F6B4F] transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3F6B4F" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M8.5 12.5l2.5 2.5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className={`${plex.className} font-medium text-[#2B211A] text-sm`}>Check In</span>
+            <span className={`${plex.className} text-xs text-[#8A7A63]`}>Mark your arrival</span>
           </button>
-          <button onClick={handleCheckOut} disabled={!todayRecord || todayRecord.status === "absent" || !!todayRecord.check_out}
-            className="flex flex-col gap-2 p-4 rounded-xl bg-slate-800 border border-slate-700 text-left hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
-            <span className="text-2xl">🔵</span>
-            <span className="font-semibold text-white text-sm">Check Out</span>
-            <span className="text-xs text-slate-400">Mark your departure</span>
+
+          <button
+            onClick={handleCheckOut}
+            disabled={!todayRecord || todayRecord.status === "absent" || !!todayRecord.check_out}
+            className="flex flex-col gap-2 p-4 rounded-md bg-[#EDE3CC] border border-[#D9CBA8] text-left hover:border-[#2B211A] transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2B211A" strokeWidth="1.5">
+              <path d="M4 12h13M13 7l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className={`${plex.className} font-medium text-[#2B211A] text-sm`}>Check Out</span>
+            <span className={`${plex.className} text-xs text-[#8A7A63]`}>Mark your departure</span>
           </button>
         </div>
 
-        <button onClick={() => setShowAbsentForm(true)} disabled={!!todayRecord}
-          className="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-800 border border-slate-700 text-left hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed mb-4">
-          <span className="text-2xl">🔴</span>
+        <button
+          onClick={() => setShowAbsentForm(true)}
+          disabled={!!todayRecord}
+          className="w-full flex items-center gap-3 p-4 rounded-md bg-[#EDE3CC] border border-[#D9CBA8] text-left hover:border-[#5B1A1E] transition disabled:opacity-40 disabled:cursor-not-allowed mb-4"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B1A1E" strokeWidth="1.5" className="shrink-0">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9 9l6 6M15 9l-6 6" strokeLinecap="round" />
+          </svg>
           <div>
-            <p className="font-semibold text-white text-sm">Mark Absent</p>
-            <p className="text-xs text-slate-400">Record absence with reason</p>
+            <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>Mark Absent</p>
+            <p className={`${plex.className} text-xs text-[#8A7A63]`}>Record absence with reason</p>
           </div>
         </button>
 
-        {/* Absent form */}
         {showAbsentForm && (
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4">
-            <p className="text-white font-medium text-sm mb-3">Reason for absence</p>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)}
+          <div className="bg-[#EDE3CC] border border-[#D9CBA8] rounded-md p-4 mb-4">
+            <p className={`${plex.className} text-[#2B211A] font-medium text-sm mb-3`}>Reason for absence</p>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               placeholder="e.g. Sick, family emergency..."
-              className="w-full text-sm bg-slate-900 border border-slate-600 text-white rounded-lg p-3 mb-3 resize-none placeholder-slate-500 focus:outline-none focus:border-blue-500"
-              rows={3} />
+              className={`${plex.className} w-full text-sm bg-[#F3ECDD] border border-[#D9CBA8] text-[#2B211A] rounded-md p-3 mb-3 resize-none placeholder-[#8A7A63] focus:outline-none focus:border-[#5B1A1E]`}
+              rows={3}
+            />
             <div className="flex gap-2">
-              <button onClick={handleAbsent}
-                className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+              <button
+                onClick={handleAbsent}
+                className={`${plex.className} flex-1 bg-[#5B1A1E] text-[#F3ECDD] text-sm py-2 rounded-md hover:bg-[#4A1417] transition font-medium`}
+              >
                 Submit
               </button>
-              <button onClick={() => setShowAbsentForm(false)}
-                className="flex-1 border border-slate-600 text-slate-300 text-sm py-2 rounded-lg hover:bg-slate-700 transition">
+              <button
+                onClick={() => setShowAbsentForm(false)}
+                className={`${plex.className} flex-1 border border-[#D9CBA8] text-[#8A7A63] text-sm py-2 rounded-md hover:bg-[#F3ECDD] transition`}
+              >
                 Cancel
               </button>
             </div>
           </div>
         )}
 
-        {/* History */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Recent History</p>
-            <button onClick={() => router.push("/history")}
-              className="text-xs text-blue-400 hover:text-blue-300 transition">View all →</button>
+        <div className="bg-[#EDE3CC] border border-[#D9CBA8] rounded-md p-4">
+          <div className="flex justify-between items-center mb-2">
+            <p className={`${plex.className} text-xs text-[#8A7A63]`}>Recent history</p>
+            <button
+              onClick={() => router.push("/history")}
+              className={`${plex.className} text-xs text-[#5B1A1E] hover:text-[#4A1417] transition`}
+            >
+              View all
+            </button>
           </div>
           {loading ? (
-            <p className="text-sm text-slate-500 text-center py-4">Loading...</p>
+            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
           ) : records.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-4 border border-dashed border-slate-700 rounded-lg">
+            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
               No records yet
             </p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col">
               {records.slice(0, 5).map((r) => (
-                <div key={r.id} className="flex justify-between items-center py-2 border-b border-slate-700 last:border-0">
+                <div key={r.id} className="flex justify-between items-center py-2.5 border-b border-[#D9CBA8] last:border-0">
                   <div>
-                    <p className="text-white text-sm font-medium">
+                    <p className={`${plex.className} text-[#2B211A] text-sm font-medium`}>
                       {new Date(r.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className={`${plex.className} text-xs text-[#8A7A63]`}>
                       {r.status === "present"
                         ? `${r.check_in}${r.check_out ? " → " + r.check_out : " (not checked out)"}`
                         : r.reason || "No reason given"}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${r.status === "present" ? "bg-blue-900 text-blue-300" : "bg-red-900 text-red-300"}`}>
+                  <span
+                    className={`${plex.className} text-xs px-2 py-1 rounded-full font-medium ${
+                      r.status === "present" ? "bg-[#DCE7DE] text-[#3F6B4F]" : "bg-[#EAD8D8] text-[#5B1A1E]"
+                    }`}
+                  >
                     {r.status === "present" ? "Present" : "Absent"}
                   </span>
                 </div>
@@ -224,7 +257,6 @@ export default function Home() {
             </div>
           )}
         </div>
-
       </div>
     </main>
   );

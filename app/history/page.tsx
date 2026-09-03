@@ -2,6 +2,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useRouter } from "next/navigation";
+import { Fraunces, IBM_Plex_Sans } from "next/font/google";
+
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
+const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500"] });
 
 type Record = {
   id: string;
@@ -16,6 +20,7 @@ export default function HistoryPage() {
   const router = useRouter();
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [summary, setSummary] = useState({ present: 0, absent: 0, total: 0 });
 
   useEffect(() => {
@@ -24,8 +29,9 @@ export default function HistoryPage() {
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) router.push("/login");
-    else fetchRecords(user.id);
+    if (!user) { router.push("/landing"); return; }
+    setAuthLoading(false);
+    fetchRecords(user.id);
   };
 
   const fetchRecords = async (userId: string) => {
@@ -44,69 +50,88 @@ export default function HistoryPage() {
     setLoading(false);
   };
 
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-[#F3ECDD] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full bg-[#5B1A1E] flex items-center justify-center mx-auto mb-4">
+            <span className={`${fraunces.className} text-[#F3ECDD] text-base`}>IA</span>
+          </div>
+          <p className={`${plex.className} text-[#8A7A63] text-sm`}>Loading history...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <main className="min-h-screen bg-[#F3ECDD] flex flex-col items-center py-10 px-4">
+      <div className="w-full max-w-md bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden">
 
         {/* Navbar */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-          <button onClick={() => router.push("/")} className="text-sm text-gray-400 hover:text-gray-600 transition">
-            ← Back
+        <div className="flex justify-between items-center px-6 py-4 border-b border-[#D9CBA8]">
+          <button onClick={() => router.push("/")}
+            className={`${plex.className} flex items-center gap-1.5 text-sm text-[#8A7A63] hover:text-[#5B1A1E] transition`}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back
           </button>
-          <span className="font-medium text-gray-800">Attendance History</span>
+          <span className={`${fraunces.className} text-[#2B211A] text-base`}>Attendance History</span>
           <div className="w-12" />
         </div>
 
         {/* Summary */}
         <div className="grid grid-cols-3 gap-3 px-6 pt-6 pb-4">
-          <div className="flex flex-col items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
-            <span className="text-2xl font-semibold text-gray-900">{summary.total}</span>
-            <span className="text-xs text-gray-400 mt-1">Total days</span>
+          <div className="flex flex-col items-center p-3 rounded-md bg-[#F3ECDD] border border-[#D9CBA8]">
+            <span className={`${fraunces.className} text-2xl text-[#2B211A]`}>{summary.total}</span>
+            <span className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>Total days</span>
           </div>
-          <div className="flex flex-col items-center p-3 rounded-xl bg-green-50 border border-green-100">
-            <span className="text-2xl font-semibold text-green-700">{summary.present}</span>
-            <span className="text-xs text-gray-400 mt-1">Present</span>
+          <div className="flex flex-col items-center p-3 rounded-md bg-[#F3ECDD] border border-[#D9CBA8]">
+            <span className={`${fraunces.className} text-2xl text-[#3F6B4F]`}>{summary.present}</span>
+            <span className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>Present</span>
           </div>
-          <div className="flex flex-col items-center p-3 rounded-xl bg-orange-50 border border-orange-100">
-            <span className="text-2xl font-semibold text-orange-700">{summary.absent}</span>
-            <span className="text-xs text-gray-400 mt-1">Absent</span>
+          <div className="flex flex-col items-center p-3 rounded-md bg-[#F3ECDD] border border-[#D9CBA8]">
+            <span className={`${fraunces.className} text-2xl text-[#5B1A1E]`}>{summary.absent}</span>
+            <span className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>Absent</span>
           </div>
         </div>
 
         {/* Records */}
         <div className="px-6 pb-8">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">All Records</p>
+          <p className={`${plex.className} text-xs text-[#8A7A63] mb-3`}>All records</p>
           {loading ? (
-            <p className="text-sm text-gray-400 text-center py-4">Loading...</p>
+            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
           ) : records.length === 0 ? (
-            <div className="text-sm text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-xl">
+            <div className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
               No attendance records yet
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col">
               {records.map((r) => (
-                <div key={r.id} className="p-3 rounded-xl border border-gray-100 bg-gray-50">
+                <div key={r.id} className="py-3 border-b border-[#D9CBA8] last:border-0">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-gray-800 text-sm">
+                      <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>
                         {new Date(r.date).toLocaleDateString("en-US", {
                           weekday: "long", month: "long", day: "numeric", year: "numeric"
                         })}
                       </p>
                       {r.status === "present" ? (
-                        <p className="text-xs text-gray-400 mt-1">
-                          🟢 In: <strong>{r.check_in}</strong>
+                        <p className={`${plex.className} text-xs text-[#3F6B4F] mt-1`}>
+                          In: <strong>{r.check_in}</strong>
                           {r.check_out
-                            ? <> · 🔵 Out: <strong>{r.check_out}</strong></>
-                            : <span className="text-orange-400"> · Not checked out</span>}
+                            ? <> · Out: <strong>{r.check_out}</strong></>
+                            : <span> · Not checked out</span>}
                         </p>
                       ) : (
-                        <p className="text-xs text-gray-400 mt-1">
-                          🔴 Absent {r.reason && <>— <em>{r.reason}</em></>}
+                        <p className={`${plex.className} text-xs text-[#5B1A1E] mt-1`}>
+                          Absent {r.reason && <>— <em>{r.reason}</em></>}
                         </p>
                       )}
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${r.status === "present" ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"}`}>
+                    <span className={`${plex.className} text-xs px-2 py-1 rounded-full font-medium ${
+                      r.status === "present" ? "bg-[#DCE7DE] text-[#3F6B4F]" : "bg-[#EAD8D8] text-[#5B1A1E]"
+                    }`}>
                       {r.status === "present" ? "Present" : "Absent"}
                     </span>
                   </div>
@@ -119,4 +144,4 @@ export default function HistoryPage() {
       </div>
     </main>
   );
-} 
+}
