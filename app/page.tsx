@@ -111,19 +111,36 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#F3ECDD] flex flex-col items-center py-10 px-4">
       <div className="w-full max-w-md">
+
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className={`${fraunces.className} text-[#2B211A] text-xl`}>Intern Attendance</h1>
             <p className={`${plex.className} text-[#8A7A63] text-xs mt-0.5`}>{userEmail}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className={`${plex.className} text-xs border border-[#5B1A1E] text-[#5B1A1E] px-3 py-1.5 rounded-md hover:bg-[#5B1A1E] hover:text-[#F3ECDD] transition`}
-          >
-            Log out
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push("/logbook")}
+              className={`${plex.className} text-xs border border-[#5B1A1E] text-[#5B1A1E] px-3 py-1.5 rounded-md hover:bg-[#5B1A1E] hover:text-[#F3ECDD] transition`}
+            >
+              Logbook
+            </button>
+            <button
+              onClick={() => router.push("/profile")}
+              className={`${plex.className} text-xs border border-[#5B1A1E] text-[#5B1A1E] px-3 py-1.5 rounded-md hover:bg-[#5B1A1E] hover:text-[#F3ECDD] transition`}
+            >
+              Profile
+            </button>
+            <button
+              onClick={handleLogout}
+              className={`${plex.className} text-xs border border-[#5B1A1E] text-[#5B1A1E] px-3 py-1.5 rounded-md hover:bg-[#5B1A1E] hover:text-[#F3ECDD] transition`}
+            >
+              Log out
+            </button>
+          </div>
         </div>
 
+        {/* Date card */}
         <div className="relative bg-[#EDE3CC] border border-[#D9CBA8] rounded-md px-6 py-5 mb-4 overflow-hidden">
           <span className="absolute left-0 top-0 h-full w-1 bg-[#5B1A1E]" />
           <p className={`${plex.className} text-[#8A7A63] text-xs mb-1`}>Today</p>
@@ -146,6 +163,7 @@ export default function Home() {
           )}
         </div>
 
+        {/* Action buttons */}
         <div className="grid grid-cols-2 gap-3 mb-3">
           <button
             onClick={handleCheckIn}
@@ -188,6 +206,7 @@ export default function Home() {
           </div>
         </button>
 
+        {/* Absent form */}
         {showAbsentForm && (
           <div className="bg-[#EDE3CC] border border-[#D9CBA8] rounded-md p-4 mb-4">
             <p className={`${plex.className} text-[#2B211A] font-medium text-sm mb-3`}>Reason for absence</p>
@@ -215,6 +234,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* History */}
         <div className="bg-[#EDE3CC] border border-[#D9CBA8] rounded-md p-4">
           <div className="flex justify-between items-center mb-2">
             <p className={`${plex.className} text-xs text-[#8A7A63]`}>Recent history</p>
@@ -257,6 +277,7 @@ export default function Home() {
             </div>
           )}
         </div>
+
       </div>
     </main>
   );

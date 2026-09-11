@@ -17,10 +17,31 @@ type AttendanceRecord = {
   email?: string;
 };
 
+type Profile = {
+  id: string;
+  email: string;
+  role: string;
+  full_name: string | null;
+};
+
+type LogbookEntry = {
+  id: string;
+  date: string;
+  activity: string;
+  learned: string | null;
+  user_id: string;
+  email?: string;
+  full_name?: string | null;
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [interns, setInterns] = useState<Profile[]>([]);
+  const [logbookEntries, setLogbookEntries] = useState<LogbookEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [internsLoading, setInternsLoading] = useState(true);
+  const [logbookLoading, setLogbookLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [summary, setSummary] = useState({ present: 0, absent: 0, total: 0 });
 
@@ -44,6 +65,8 @@ export default function AdminPage() {
     }
     setAuthLoading(false);
     fetchAllRecords();
+    fetchInterns();
+    fetchLogbookEntries();
   };
 
   const fetchAllRecords = async () => {
@@ -63,6 +86,34 @@ export default function AdminPage() {
       setSummary({ present, absent, total: formatted.length });
     }
     setLoading(false);
+  };
+
+  const fetchInterns = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("role", "intern")
+      .order("full_name", { ascending: true });
+
+    if (!error && data) setInterns(data);
+    setInternsLoading(false);
+  };
+
+  const fetchLogbookEntries = async () => {
+    const { data, error } = await supabase
+      .from("activities")
+      .select("*, profiles(email, full_name)")
+      .order("date", { ascending: false });
+
+    if (!error && data) {
+      const formatted = data.map((a: any) => ({
+        ...a,
+        email: a.profiles?.email || "Unknown",
+        full_name: a.profiles?.full_name || null,
+      }));
+      setLogbookEntries(formatted);
+    }
+    setLogbookLoading(false);
   };
 
   const handleLogout = async () => {
@@ -85,7 +136,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[#F3ECDD] flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden">
+      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden mb-6">
 
         {/* Navbar */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-[#D9CBA8]">
@@ -119,7 +170,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Records */}
+        {/* Attendance Records */}
         <div className="px-6 pb-8">
           <p className={`${plex.className} text-xs text-[#8A7A63] mb-3`}>All intern records</p>
           {loading ? (
@@ -166,6 +217,76 @@ export default function AdminPage() {
         </div>
 
       </div>
+
+      {/* Intern Profiles */}
+      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-[#D9CBA8]">
+          <span className={`${fraunces.className} text-[#2B211A] text-base`}>Intern Profiles</span>
+        </div>
+        <div className="px-6 py-4">
+          {internsLoading ? (
+            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
+          ) : interns.length === 0 ? (
+            <div className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
+              No interns yet
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {interns.map((p) => (
+                <div key={p.id} className="py-3 border-b border-[#D9CBA8] last:border-0 flex justify-between items-center">
+                  <div>
+                    <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>
+                      {p.full_name || "No name set"}
+                    </p>
+                    <p className={`${plex.className} text-xs text-[#8A7A63]`}>{p.email}</p>
+                  </div>
+                  <span className={`${plex.className} text-xs px-2 py-1 rounded-full font-medium bg-[#DCE7DE] text-[#3F6B4F]`}>
+                    Intern
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Logbook Entries */}
+      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-[#D9CBA8]">
+          <span className={`${fraunces.className} text-[#2B211A] text-base`}>Logbook Entries</span>
+        </div>
+        <div className="px-6 py-4">
+          {logbookLoading ? (
+            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
+          ) : logbookEntries.length === 0 ? (
+            <div className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
+              No logbook entries yet
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {logbookEntries.map((a) => (
+                <div key={a.id} className="py-3 border-b border-[#D9CBA8] last:border-0">
+                  <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>
+                    {new Date(a.date).toLocaleDateString("en-US", {
+                      weekday: "long", month: "long", day: "numeric", year: "numeric"
+                    })}
+                  </p>
+                  <p className={`${plex.className} text-xs text-[#8A7A63] mb-2`}>
+                    {a.full_name || a.email}
+                  </p>
+                  <p className={`${plex.className} text-sm text-[#2B211A]`}>{a.activity}</p>
+                  {a.learned && (
+                    <p className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>
+                      Learned: {a.learned}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
     </main>
   );
 }
