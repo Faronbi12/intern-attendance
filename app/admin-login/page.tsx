@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
       if (error) {
         if (error.message.includes("Password")) {
           setError("Password must be at least 12 characters long and contain uppercase and lowercase letters, a number, and a special character.");
-        } else if (error.message.includes("not_authorized_admin")) {
+        } else if (error.message.includes("Database error saving new user")) {
           setError("You’re not authorized to register as an Admin. If you’re an Intern, kindly use the Intern Portal instead.");
           setTimeout(() => router.push("/intern-login"), 3500);
         } else {
