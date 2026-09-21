@@ -20,15 +20,26 @@ export default function AdminLoginPage() {
     setError("");
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { portal: "admin" }
+        }
+      });
+
       if (error) {
         if (error.message.includes("Password")) {
           setError("Password must be at least 12 characters long and contain uppercase and lowercase letters, a number, and a special character.");
+        } else if (error.message.includes("not_authorized_admin")) {
+          setError("You’re not authorized to register as an Admin. If you’re an Intern, kindly use the Intern Portal instead.");
+          setTimeout(() => router.push("/intern-login"), 3500);
         } else {
           setError(error.message);
         }
+      } else {
+        setError("Check your email to confirm your account.");
       }
-      else setError("Check your email to confirm. Ask your system admin to grant you admin access.");
     } else {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message); setLoading(false); return; }
