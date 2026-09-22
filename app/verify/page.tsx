@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { supabase } from "../supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fraunces, IBM_Plex_Sans } from "next/font/google";
@@ -8,6 +8,14 @@ const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500"] });
 
 export default function VerifyPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyPageContent />
+    </Suspense>
+  );
+}
+
+function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
