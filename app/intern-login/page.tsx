@@ -27,8 +27,11 @@ export default function InternLoginPage() {
         } else {
           setError(error.message);
         }
+        setLoading(false);
+        return;
       }
-      else setError("Check your email to confirm your account!");
+      router.push(`/verify?email=${encodeURIComponent(email)}&portal=intern`);
+      return;
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message); setLoading(false); return; }

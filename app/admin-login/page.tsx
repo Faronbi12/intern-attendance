@@ -37,9 +37,12 @@ export default function AdminLoginPage() {
         } else {
           setError(error.message);
         }
-      } else {
-        setError("Check your email to confirm your account.");
+        setLoading(false);
+        return;
       }
+
+      router.push(`/verify?email=${encodeURIComponent(email)}&portal=admin`);
+      return;
     } else {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message); setLoading(false); return; }
