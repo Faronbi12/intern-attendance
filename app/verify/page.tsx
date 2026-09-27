@@ -90,10 +90,10 @@ function VerifyPageContent() {
               <input
                 type="text"
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={12}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
+                placeholder="Enter your code"
                 className={`${plex.className} w-full text-lg tracking-[0.3em] bg-transparent border-b border-[#B8A97E] text-[#2B211A] py-2 focus:outline-none focus:border-[#5B1A1E] transition-colors`}
               />
             </div>
@@ -106,7 +106,7 @@ function VerifyPageContent() {
 
             <button
               onClick={handleVerify}
-              disabled={loading || code.length !== 6}
+              disabled={loading || code.length < 6}
               className={`${plex.className} w-full bg-[#5B1A1E] text-[#F3ECDD] text-sm py-3 rounded-md hover:bg-[#4A1417] transition disabled:opacity-50 font-medium mt-1`}
             >
               {loading ? "Please wait..." : "Verify"}
