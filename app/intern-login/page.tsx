@@ -16,8 +16,14 @@ export default function InternLoginPage() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    setLoading(true);
     setError("");
+
+    if (!email || !password) {
+      setError("Please enter both your email and password.");
+      return;
+    }
+
+    setLoading(true);
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password });
@@ -34,7 +40,17 @@ export default function InternLoginPage() {
       return;
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { setError(error.message); setLoading(false); return; }
+      if (error) {
+        if (error.message.includes("missing email or phone")) {
+          setError("Please enter both your email and password.");
+        } else if (error.message.includes("Invalid login credentials")) {
+          setError("Incorrect email or password. Please try again.");
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
+        return;
+      }
       router.push("/");
     }
     setLoading(false);
