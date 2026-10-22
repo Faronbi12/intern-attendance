@@ -14,6 +14,7 @@ type AttendanceRecord = {
   check_out: string | null;
   status: "present" | "absent";
   reason?: string;
+  user_id?: string;
   email?: string;
 };
 
@@ -64,21 +65,44 @@ export default function AdminPage() {
       return;
     }
     setAuthLoading(false);
-    fetchAllRecords();
-    fetchInterns();
-    fetchLogbookEntries();
+    loadAllData();
   };
 
-  const fetchAllRecords = async () => {
-    const { data, error } = await supabase
+  // Loads profiles first, then attendance and logbook entries,
+  // and matches each record to its intern here in the page
+  // (no automatic table joins, so nothing depends on database links).
+  const loadAllData = async () => {
+    // 1. Profiles
+    const { data: profileRows, error: profilesError } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("full_name", { ascending: true });
+
+    if (profilesError) {
+      console.error("Admin: could not load profiles:", profilesError);
+    }
+
+    const profiles = (profileRows || []) as Profile[];
+    const profileById = new Map<string, Profile>();
+    profiles.forEach((p) => profileById.set(p.id, p));
+
+    setInterns(profiles.filter((p) => p.role === "intern"));
+    setInternsLoading(false);
+
+    // 2. Attendance
+    const { data: attendanceRows, error: attendanceError } = await supabase
       .from("attendance")
-      .select("*, profiles(email)")
+      .select("*")
       .order("date", { ascending: false });
 
-    if (!error && data) {
-      const formatted = data.map((r: any) => ({
+    if (attendanceError) {
+      console.error("Admin: could not load attendance:", attendanceError);
+    }
+
+    if (attendanceRows) {
+      const formatted: AttendanceRecord[] = attendanceRows.map((r: any) => ({
         ...r,
-        email: r.profiles?.email || "Unknown",
+        email: profileById.get(r.user_id)?.email || "Unknown",
       }));
       setRecords(formatted);
       const present = formatted.filter((r) => r.status === "present").length;
@@ -86,30 +110,22 @@ export default function AdminPage() {
       setSummary({ present, absent, total: formatted.length });
     }
     setLoading(false);
-  };
 
-  const fetchInterns = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "intern")
-      .order("full_name", { ascending: true });
-
-    if (!error && data) setInterns(data);
-    setInternsLoading(false);
-  };
-
-  const fetchLogbookEntries = async () => {
-    const { data, error } = await supabase
+    // 3. Logbook entries
+    const { data: activityRows, error: activitiesError } = await supabase
       .from("activities")
-      .select("*, profiles(email, full_name)")
+      .select("*")
       .order("date", { ascending: false });
 
-    if (!error && data) {
-      const formatted = data.map((a: any) => ({
+    if (activitiesError) {
+      console.error("Admin: could not load logbook entries:", activitiesError);
+    }
+
+    if (activityRows) {
+      const formatted: LogbookEntry[] = activityRows.map((a: any) => ({
         ...a,
-        email: a.profiles?.email || "Unknown",
-        full_name: a.profiles?.full_name || null,
+        email: profileById.get(a.user_id)?.email || "Unknown",
+        full_name: profileById.get(a.user_id)?.full_name || null,
       }));
       setLogbookEntries(formatted);
     }
