@@ -96,6 +96,13 @@ export default function InternLoginPage() {
               <input type="password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`${plex.className} w-full text-sm bg-transparent border-b border-[#B8A97E] text-[#2B211A] py-2 focus:outline-none focus:border-[#5B1A1E] transition-colors`} />
+              {!isSignUp && (
+                <button type="button"
+                  onClick={() => router.push("/forgot-password?portal=intern")}
+                  className={`${plex.className} self-end text-xs text-[#8A7A63] hover:text-[#5B1A1E] transition mt-1`}>
+                  Forgot password?
+                </button>
+              )}
             </div>
 
             {error && (

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useRouter } from "next/navigation";
 import { Fraunces, IBM_Plex_Sans } from "next/font/google";
@@ -7,302 +7,149 @@ import { Fraunces, IBM_Plex_Sans } from "next/font/google";
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500"] });
 
-type AttendanceRecord = {
-  id: string;
-  date: string;
-  check_in: string | null;
-  check_out: string | null;
-  status: "present" | "absent";
-  reason?: string;
-  user_id?: string;
-  email?: string;
-};
-
-type Profile = {
-  id: string;
-  email: string;
-  role: string;
-  full_name: string | null;
-};
-
-type LogbookEntry = {
-  id: string;
-  date: string;
-  activity: string;
-  learned: string | null;
-  user_id: string;
-  email?: string;
-  full_name?: string | null;
-};
-
-export default function AdminPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [interns, setInterns] = useState<Profile[]>([]);
-  const [logbookEntries, setLogbookEntries] = useState<LogbookEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [internsLoading, setInternsLoading] = useState(true);
-  const [logbookLoading, setLogbookLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [summary, setSummary] = useState({ present: 0, absent: 0, total: 0 });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkAdmin();
-  }, []);
+  const handleSubmit = async () => {
+    setError("");
 
-  const checkAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/landing"); return; }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin") {
-      router.push("/");
+    if (!email || !password) {
+      setError("Please enter both your email and password.");
       return;
     }
-    setAuthLoading(false);
-    loadAllData();
-  };
 
-  // Loads profiles first, then attendance and logbook entries,
-  // and matches each record to its intern here in the page
-  // (no automatic table joins, so nothing depends on database links).
-  const loadAllData = async () => {
-    // 1. Profiles
-    const { data: profileRows, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("full_name", { ascending: true });
+    setLoading(true);
 
-    if (profilesError) {
-      console.error("Admin: could not load profiles:", profilesError);
-    }
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { portal: "admin" }
+        }
+      });
 
-    const profiles = (profileRows || []) as Profile[];
-    const profileById = new Map<string, Profile>();
-    profiles.forEach((p) => profileById.set(p.id, p));
+      if (error) {
+        if (error.message.includes("Password")) {
+          setError("Password must be at least 12 characters long and contain uppercase and lowercase letters, a number, and a special character.");
+        } else if (error.message.includes("Database error saving new user")) {
+          setError("You’re not authorized to register as an Admin. If you’re an Intern, kindly use the Intern Portal instead.");
+          setTimeout(() => router.push("/intern-login"), 3500);
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
+        return;
+      }
 
-    setInterns(profiles.filter((p) => p.role === "intern"));
-    setInternsLoading(false);
+      router.push(`/verify?email=${encodeURIComponent(email)}&portal=admin`);
+      return;
+    } else {
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
 
-    // 2. Attendance
-    const { data: attendanceRows, error: attendanceError } = await supabase
-      .from("attendance")
-      .select("*")
-      .order("date", { ascending: false });
+      if (error) {
+        if (error.message.includes("missing email or phone")) {
+          setError("Please enter both your email and password.");
+        } else if (error.message.includes("Invalid login credentials")) {
+          setError("Incorrect email or password. Please try again.");
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
+        return;
+      }
 
-    if (attendanceError) {
-      console.error("Admin: could not load attendance:", attendanceError);
-    }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
 
-    if (attendanceRows) {
-      const formatted: AttendanceRecord[] = attendanceRows.map((r: any) => ({
-        ...r,
-        email: profileById.get(r.user_id)?.email || "Unknown",
-      }));
-      setRecords(formatted);
-      const present = formatted.filter((r) => r.status === "present").length;
-      const absent = formatted.filter((r) => r.status === "absent").length;
-      setSummary({ present, absent, total: formatted.length });
+      if (profile?.role === "admin") {
+        router.push("/admin");
+      } else {
+        setError("You do not have admin access.");
+      }
     }
     setLoading(false);
-
-    // 3. Logbook entries
-    const { data: activityRows, error: activitiesError } = await supabase
-      .from("activities")
-      .select("*")
-      .order("date", { ascending: false });
-
-    if (activitiesError) {
-      console.error("Admin: could not load logbook entries:", activitiesError);
-    }
-
-    if (activityRows) {
-      const formatted: LogbookEntry[] = activityRows.map((a: any) => ({
-        ...a,
-        email: profileById.get(a.user_id)?.email || "Unknown",
-        full_name: profileById.get(a.user_id)?.full_name || null,
-      }));
-      setLogbookEntries(formatted);
-    }
-    setLogbookLoading(false);
   };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/landing");
-  };
-
-  if (authLoading) {
-    return (
-      <main className="min-h-screen bg-[#F3ECDD] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full bg-[#5B1A1E] flex items-center justify-center mx-auto mb-4">
-            <span className={`${fraunces.className} text-[#F3ECDD] text-base`}>IA</span>
-          </div>
-          <p className={`${plex.className} text-[#8A7A63] text-sm`}>Loading records...</p>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main className="min-h-screen bg-[#F3ECDD] flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden mb-6">
+    <main className="min-h-screen bg-[#F3ECDD] flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-md">
 
-        {/* Navbar */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-[#D9CBA8]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-[#5B1A1E] flex items-center justify-center shrink-0 text-[#5B1A1E]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <button onClick={() => router.push("/landing")}
+          className={`${plex.className} flex items-center gap-1.5 text-[#8A7A63] text-sm mb-6 hover:text-[#5B1A1E] transition`}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back
+        </button>
+
+        <div className="bg-[#EDE3CC] border border-[#D9CBA8] rounded-md px-6 py-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full border border-[#5B1A1E] flex items-center justify-center shrink-0 text-[#5B1A1E]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" strokeLinejoin="round" />
+                <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <span className={`${fraunces.className} text-[#2B211A] text-base`}>Admin Dashboard</span>
-          </div>
-          <button onClick={handleLogout}
-            className={`${plex.className} text-xs border border-[#5B1A1E] text-[#5B1A1E] px-3 py-1.5 rounded-md hover:bg-[#5B1A1E] hover:text-[#F3ECDD] transition`}>
-            Log out
-          </button>
-        </div>
-
-        {/* Summary */}
-        <div className="grid grid-cols-3 gap-3 px-6 pt-6 pb-4">
-          <div className="flex flex-col items-center p-3 rounded-md bg-[#F3ECDD] border border-[#D9CBA8]">
-            <span className={`${fraunces.className} text-2xl text-[#2B211A]`}>{summary.total}</span>
-            <span className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>Total records</span>
-          </div>
-          <div className="flex flex-col items-center p-3 rounded-md bg-[#F3ECDD] border border-[#D9CBA8]">
-            <span className={`${fraunces.className} text-2xl text-[#3F6B4F]`}>{summary.present}</span>
-            <span className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>Present</span>
-          </div>
-          <div className="flex flex-col items-center p-3 rounded-md bg-[#F3ECDD] border border-[#D9CBA8]">
-            <span className={`${fraunces.className} text-2xl text-[#5B1A1E]`}>{summary.absent}</span>
-            <span className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>Absent</span>
-          </div>
-        </div>
-
-        {/* Attendance Records */}
-        <div className="px-6 pb-8">
-          <p className={`${plex.className} text-xs text-[#8A7A63] mb-3`}>All intern records</p>
-          {loading ? (
-            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
-          ) : records.length === 0 ? (
-            <div className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
-              No records yet
+            <div>
+              <h1 className={`${fraunces.className} text-[#2B211A] text-lg`}>
+                {isSignUp ? "Create admin account" : "Admin login"}
+              </h1>
+              <p className={`${plex.className} text-[#8A7A63] text-xs`}>Restricted — authorized personnel only</p>
             </div>
-          ) : (
-            <div className="flex flex-col">
-              {records.map((r) => (
-                <div key={r.id} className="py-3 border-b border-[#D9CBA8] last:border-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>
-                        {new Date(r.date).toLocaleDateString("en-US", {
-                          weekday: "long", month: "long", day: "numeric", year: "numeric"
-                        })}
-                      </p>
-                      <p className={`${plex.className} text-xs text-[#8A7A63] mb-1`}>{r.email}</p>
-                      {r.status === "present" ? (
-                        <p className={`${plex.className} text-xs text-[#3F6B4F]`}>
-                          In: <strong>{r.check_in}</strong>
-                          {r.check_out
-                            ? <> · Out: <strong>{r.check_out}</strong></>
-                            : <span> · Not checked out</span>}
-                        </p>
-                      ) : (
-                        <p className={`${plex.className} text-xs text-[#5B1A1E]`}>
-                          Absent {r.reason && <>— <em>{r.reason}</em></>}
-                        </p>
-                      )}
-                    </div>
-                    <span className={`${plex.className} text-xs px-2 py-1 rounded-full font-medium ${
-                      r.status === "present" ? "bg-[#DCE7DE] text-[#3F6B4F]" : "bg-[#EAD8D8] text-[#5B1A1E]"
-                    }`}>
-                      {r.status === "present" ? "Present" : "Absent"}
-                    </span>
-                  </div>
-                </div>
-              ))}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className={`${plex.className} text-xs text-[#8A7A63]`}>Admin email</label>
+              <input type="email" value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`${plex.className} w-full text-sm bg-transparent border-b border-[#B8A97E] text-[#2B211A] py-2 focus:outline-none focus:border-[#5B1A1E] transition-colors`} />
             </div>
-          )}
+            <div className="flex flex-col gap-1">
+              <label className={`${plex.className} text-xs text-[#8A7A63]`}>Password</label>
+              <input type="password" value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${plex.className} w-full text-sm bg-transparent border-b border-[#B8A97E] text-[#2B211A] py-2 focus:outline-none focus:border-[#5B1A1E] transition-colors`} />
+              {!isSignUp && (
+                <button type="button"
+                  onClick={() => router.push("/forgot-password?portal=admin")}
+                  className={`${plex.className} self-end text-xs text-[#8A7A63] hover:text-[#5B1A1E] transition mt-1`}>
+                  Forgot password?
+                </button>
+              )}
+            </div>
+
+            {error && (
+              <p className={`${plex.className} text-sm ${error.includes("Check your email") ? "text-[#3F6B4F]" : "text-[#5B1A1E]"}`}>
+                {error}
+              </p>
+            )}
+
+            <button onClick={handleSubmit} disabled={loading}
+              className={`${plex.className} w-full bg-[#5B1A1E] text-[#F3ECDD] text-sm py-3 rounded-md hover:bg-[#4A1417] transition disabled:opacity-50 font-medium mt-1`}>
+              {loading ? "Please wait..." : isSignUp ? "Create admin account" : "Log in as admin"}
+            </button>
+
+            <button onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+              className={`${plex.className} text-sm text-[#8A7A63] hover:text-[#5B1A1E] transition text-center`}>
+              {isSignUp ? "Already have an account? Log in as admin" : "Don't have an account? Create admin account"}
+            </button>
+          </div>
         </div>
 
+        <p className={`${plex.className} text-center text-[#8A7A63] text-xs mt-6`}>
+          If you're an intern, use the Intern Portal instead.
+        </p>
       </div>
-
-      {/* Intern Profiles */}
-      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-[#D9CBA8]">
-          <span className={`${fraunces.className} text-[#2B211A] text-base`}>Intern Profiles</span>
-        </div>
-        <div className="px-6 py-4">
-          {internsLoading ? (
-            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
-          ) : interns.length === 0 ? (
-            <div className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
-              No interns yet
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {interns.map((p) => (
-                <div key={p.id} className="py-3 border-b border-[#D9CBA8] last:border-0 flex justify-between items-center">
-                  <div>
-                    <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>
-                      {p.full_name || "No name set"}
-                    </p>
-                    <p className={`${plex.className} text-xs text-[#8A7A63]`}>{p.email}</p>
-                  </div>
-                  <span className={`${plex.className} text-xs px-2 py-1 rounded-full font-medium bg-[#DCE7DE] text-[#3F6B4F]`}>
-                    Intern
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Logbook Entries */}
-      <div className="w-full max-w-2xl bg-[#EDE3CC] border border-[#D9CBA8] rounded-md overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-[#D9CBA8]">
-          <span className={`${fraunces.className} text-[#2B211A] text-base`}>Logbook Entries</span>
-        </div>
-        <div className="px-6 py-4">
-          {logbookLoading ? (
-            <p className={`${plex.className} text-sm text-[#8A7A63] text-center py-4`}>Loading...</p>
-          ) : logbookEntries.length === 0 ? (
-            <div className={`${plex.className} text-sm text-[#8A7A63] text-center py-4 border border-dashed border-[#D9CBA8] rounded-md`}>
-              No logbook entries yet
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {logbookEntries.map((a) => (
-                <div key={a.id} className="py-3 border-b border-[#D9CBA8] last:border-0">
-                  <p className={`${plex.className} font-medium text-[#2B211A] text-sm`}>
-                    {new Date(a.date).toLocaleDateString("en-US", {
-                      weekday: "long", month: "long", day: "numeric", year: "numeric"
-                    })}
-                  </p>
-                  <p className={`${plex.className} text-xs text-[#8A7A63] mb-2`}>
-                    {a.full_name || a.email}
-                  </p>
-                  <p className={`${plex.className} text-sm text-[#2B211A]`}>{a.activity}</p>
-                  {a.learned && (
-                    <p className={`${plex.className} text-xs text-[#8A7A63] mt-1`}>
-                      Learned: {a.learned}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
     </main>
   );
 }
